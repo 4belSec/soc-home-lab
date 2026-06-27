@@ -39,9 +39,9 @@ Installed Windows 10 Pro and configured Sysmon using the [SwiftOnSecurity config
 ![Windows Install](screenshots/03-win10-install.png)
 ![Sysmon Running](screenshots/04-sysmon-install.png)
 
-```powershell
-.\Sysmon64.exe -accepteula -i sysmonconfig-export.xml
-```
+Installation command:
+
+    .\Sysmon64.exe -accepteula -i sysmonconfig-export.xml
 
 This generates real security telemetry (process creation, network connections, etc.) under:
 `Applications and Services Logs → Microsoft → Windows → Sysmon → Operational`
@@ -54,18 +54,14 @@ This generates real security telemetry (process creation, network connections, e
 
 Installed Splunk Enterprise on Ubuntu Server 24.04. One notable fix: Splunk initially ran as root, which it actively warns against. Reconfigured it to run as a non-privileged user:
 
-```bash
-chown -R analyst:analyst /opt/splunk
-/opt/splunk/bin/splunk start --accept-license
-/opt/splunk/bin/splunk enable boot-start -user analyst
-```
+    chown -R analyst:analyst /opt/splunk
+    /opt/splunk/bin/splunk start --accept-license
+    /opt/splunk/bin/splunk enable boot-start -user analyst
 
 Also had to expand the VM's LVM partition (started with only 19GB usable, Splunk requires 5GB minimum free space to run queries):
 
-```bash
-lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
-resize2fs /dev/mapper/ubuntu--vg-ubuntu--lv
-```
+    lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
+    resize2fs /dev/mapper/ubuntu--vg-ubuntu--lv
 
 ---
 
@@ -74,33 +70,29 @@ resize2fs /dev/mapper/ubuntu--vg-ubuntu--lv
 Installed the Splunk Universal Forwarder on the Windows endpoint and configured it to ship Sysmon logs to the indexer.
 
 **outputs.conf:**
-```ini
-[tcpout]
-defaultGroup = default-autolb-group
 
-[tcpout:default-autolb-group]
-server = 192.168.X.X:9997
-```
+    [tcpout]
+    defaultGroup = default-autolb-group
+
+    [tcpout:default-autolb-group]
+    server = 192.168.X.X:9997
 
 **inputs.conf:**
-```ini
-[WinEventLog://Microsoft-Windows-Sysmon/Operational]
-disabled = false
-index = main
-sourcetype = WinEventLog:Sysmon
-```
+
+    [WinEventLog://Microsoft-Windows-Sysmon/Operational]
+    disabled = false
+    index = main
+    sourcetype = WinEventLog:Sysmon
 
 **The real troubleshoot:** the Forwarder connected fine but Sysmon logs weren't arriving. The splunkd log revealed the issue:
-ERROR WinEventLogChannel::init: Init failed, unable to subscribe to Windows Event Log channel
 
-'Microsoft-Windows-Sysmon/Operational': errorCode=5
+    ERROR WinEventLogChannel::init: Init failed, unable to subscribe to Windows Event Log channel
+    'Microsoft-Windows-Sysmon/Operational': errorCode=5
 
 `errorCode=5` is Access Denied — the Forwarder's service account didn't have permission to read the Sysmon Operational channel (which has stricter ACLs than standard Windows logs). Fixed by reconfiguring the service to run as `LocalSystem`:
 
-```powershell
-sc.exe config SplunkForwarder obj= "LocalSystem"
-Restart-Service SplunkForwarder
-```
+    sc.exe config SplunkForwarder obj= "LocalSystem"
+    Restart-Service SplunkForwarder
 
 ---
 
@@ -108,10 +100,9 @@ Restart-Service SplunkForwarder
 
 ![Splunk Events](screenshots/07-splunk-events.png)
 
-3,400+ Sysmon events flowing into Splunk in real time, confirmed via:
-```spl
-index=* host=*
-```
+3,400+ Sysmon events flowing into Splunk in real time, confirmed via the search:
+
+    index=* host=*
 
 ---
 
