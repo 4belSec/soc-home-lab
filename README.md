@@ -91,3 +91,51 @@ sourcetype = WinEventLog:Sysmon
 ```
 
 **The real troubleshoot:** the Forwarder connected fine but Sysmon logs weren't arriving. The splunkd log revealed the issue:
+ERROR WinEventLogChannel::init: Init failed, unable to subscribe to Windows Event Log channel
+
+'Microsoft-Windows-Sysmon/Operational': errorCode=5
+
+`errorCode=5` is Access Denied — the Forwarder's service account didn't have permission to read the Sysmon Operational channel (which has stricter ACLs than standard Windows logs). Fixed by reconfiguring the service to run as `LocalSystem`:
+
+```powershell
+sc.exe config SplunkForwarder obj= "LocalSystem"
+Restart-Service SplunkForwarder
+```
+
+---
+
+## 5. Result: End-to-End Data Flow Confirmed
+
+![Splunk Events](screenshots/07-splunk-events.png)
+
+3,400+ Sysmon events flowing into Splunk in real time, confirmed via:
+```spl
+index=* host=*
+```
+
+---
+
+## 6. Attacker Node: Kali Linux
+
+![Kali Install](screenshots/06-kali-install.png)
+
+Installed Kali Linux (XFCE desktop) as the threat simulation node — used to generate attack traffic (port scans, brute force attempts) for the SOC stack to detect and the SIEM to surface.
+
+---
+
+## Full Stack Overview
+
+![Full Setup](screenshots/08-final-desktop.png)
+
+---
+
+## What's Next
+- [ ] Generate and document a real brute-force attack from Kali against the Windows endpoint
+- [ ] Write detection logic (Sigma rules / SPL queries) for the captured activity
+- [ ] Add TheHive for case management and incident ticketing
+- [ ] Add MISP for threat intelligence correlation
+
+---
+
+## Related Write-ups
+See [`soc-labs`](https://github.com/4belSec/soc-labs) for incident analysis and investigation write-ups based on activity captured in this lab.
