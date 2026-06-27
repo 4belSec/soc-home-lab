@@ -121,11 +121,12 @@ Installed Kali Linux (XFCE desktop) as the threat simulation node — used to ge
 ---
 
 ## What's Next
-- [ ] Generate and document a real brute-force attack from Kali against the Windows endpoint
-- [ ] Write detection logic (Sigma rules / SPL queries) for the captured activity
+
+- [x] Generate and document a real brute-force attack from Kali against the Windows endpoint — see [soc-labs](https://github.com/4belSec/soc-labs/blob/main/cases/01-rdp-brute-force.md)
+- [x] Write detection logic (SPL queries) for the captured activity
 - [ ] Add TheHive for case management and incident ticketing
 - [ ] Add MISP for threat intelligence correlation
-
+- [ ] Generate and document additional attack scenarios (phishing simulation, port scanning)
 ---
 
 ## Related Write-ups
